@@ -1348,6 +1348,189 @@ vector<string> genElephant(map<char, string> pieces)
     }
 }
 
+vector<string> genPawn(map<char, string> pieces)
+{
+    vector<string> moves;
+    string player = pieces['x'];
+
+    if (player == "w")
+    {
+        string states = pieces['P'];
+
+        if (states.length() != 0)
+        {
+            for (int i = 0; i < states.length() - 1; i = i + 3)
+            {
+                int file = getFile(states[i]);
+                int rank = getRank(states[i + 1]);
+
+                if (rank > 0) // we can move straight up
+                {
+                    if (Board[rank - 1][file] == '-' || islower(Board[rank - 1][file]))
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank - 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank > 0 && file > 0) // we can move diag left
+                {
+                    if (Board[rank - 1][file - 1] == '-' || islower(Board[rank - 1][file - 1]))
+                    {
+                        char f = genFile(file - 1);
+                        char r = genRank(rank - 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank > 0 && file < 6) // diag right
+                {
+                    if (Board[rank - 1][file + 1] == '-' || islower(Board[rank - 1][file + 1]))
+                    {
+                        char f = genFile(file + 1);
+                        char r = genRank(rank - 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank < 3) // we have passed the river
+                {
+                    if (Board[rank + 1][file] == '-') // move 1 back
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank + 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                    if (Board[rank + 2][file] == '-' && Board[rank + 1][file] == '-')
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank + 2);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+            }
+        }
+        else // none present
+        {
+            return moves;
+        }
+        //printBoard(Board);
+        sort(moves.begin(), moves.end());
+        return moves;
+    }
+    else // blacks turn
+    {
+        string states = pieces['p'];
+
+        if (states.length() != 0)
+        {
+            for (int i = 0; i < states.length() - 1; i = i + 3)
+            {
+                int file = getFile(states[i]);
+                int rank = getRank(states[i + 1]);
+
+                if (rank > 0) // we can move straight down
+                {
+                    if (Board[rank + 1][file] == '-' || isupper(Board[rank + 1][file]))
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank + 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank < 6 && file > 0) // we can move diag left
+                {
+                    if (Board[rank + 1][file - 1] == '-' || isupper(Board[rank + 1][file - 1]))
+                    {
+                        char f = genFile(file - 1);
+                        char r = genRank(rank + 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank < 6 && file < 6) // diag right
+                {
+                    if (Board[rank + 1][file + 1] == '-' || isupper(Board[rank + 1][file + 1]))
+                    {
+                        char f = genFile(file + 1);
+                        char r = genRank(rank + 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+                if (rank > 3) // we have passed the river
+                {
+                    if (Board[rank - 1][file] == '-') // move 1 back
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank - 1);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                    if (Board[rank - 2][file] == '-' && Board[rank - 1][file] == '-')
+                    {
+                        char f = genFile(file);
+                        char r = genRank(rank - 2);
+                        string pos = "";
+                        pos += states[i];
+                        pos += states[i + 1];
+                        pos += f;
+                        pos += r;
+                        moves.push_back(pos);
+                    }
+                }
+            }
+        }
+        else // none present
+        {
+            return moves;
+        }
+        //printBoard(Board);
+        sort(moves.begin(), moves.end());
+        return moves;
+    }
+}
+
 int main()
 {
     vector<string> states;
@@ -1378,7 +1561,7 @@ int main()
         setBoard(positions);
         // printBoard(Board);
 
-        move_states = genElephant(positions);
+        move_states = genPawn(positions);
 
         int state_size = move_states.size();
 
