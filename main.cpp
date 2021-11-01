@@ -6,20 +6,59 @@
 #include <vector>
 #include <map>
 #include <cstring>
+#include <cmath>
+#include <set>
 
 using namespace std;
 
-char Board[7][7];
+const int PAWN = 100;
+const int ELEPHANT = 200;
+const int ZEBRA = 300;
 
-void initBoard()
+string makeFEN(vector<vector<char>> Board) // generate FEN using current board state
 {
+    string result = "";
+    string FEN = "";
     for (int i = 0; i < 7; i++)
     {
         for (int j = 0; j < 7; j++)
         {
-            Board[i][j] = '-';
+            result += Board[i][j];
         }
     }
+
+    int count = 0;
+
+    for (int i = 0; i < result.length(); i++)
+    {
+        if (result[i] == '-')
+        {
+            count++;
+        }
+        else //its not a free space
+        {
+            if (count != 0)
+            {
+                FEN += '0' + count;
+            }
+            FEN += result[i];
+            count = 0;
+        }
+
+        if ((i + 1) % 7 == 0)
+        {
+            if (count != 0)
+            {
+                FEN += '0' + count;
+            }
+            if (i != 48)
+            {
+                FEN += '/';
+                count = 0;
+            }
+        }
+    }
+    return FEN;
 }
 
 int getFile(char c)
@@ -38,26 +77,6 @@ int getFile(char c)
         }
     }
     return 0; // ignore warning -> will never reach this point
-}
-
-void printBoard(char Board[7][7])
-{
-    for (int i = 0; i < 7; i++)
-    {
-
-        for (int j = 0; j < 7; j++)
-        {
-            if (j != 6)
-            {
-                cout << Board[i][j] << " ";
-            }
-            else
-            {
-                cout << Board[i][j];
-            }
-        }
-        cout << endl;
-    }
 }
 
 int getRank(char r)
@@ -80,12 +99,14 @@ int getRank(char r)
     return 0; // doesnt matter
 }
 
-void setBoard(map<char, string> pieces)
+vector<vector<char>> setBoard(map<char, string> pieces)
 {
-    for (auto locations : pieces)
+    vector<vector<char>> localBoard(7, vector<char>(7, '-'));
+
+    for (auto pieces : pieces)
     {
-        char piece = locations.first;
-        string states = locations.second;
+        char piece = pieces.first;
+        string states = pieces.second;
         if (piece != 'x' && piece != 'y')
         {
             for (int i = 0; i <= states.length() - 2; i = i + 3)
@@ -93,11 +114,24 @@ void setBoard(map<char, string> pieces)
                 char f = states[i];
                 int rank = getRank(states[i + 1]);
                 int file = getFile(f);
-                Board[rank][file] = locations.first;
+                localBoard[rank][file] = pieces.first;
             }
         }
     }
-    // printBoard(Board);
+
+    return localBoard;
+}
+void printBoard(map<char, string> pieces)
+{
+    vector<vector<char>> Board = setBoard(pieces);
+    for (auto r : Board)
+    {
+        for (auto c : r)
+        {
+            cout << c << " ";
+        }
+        cout << endl;
+    }
 }
 
 void PrintPositions(map<char, string> pieces)
@@ -319,7 +353,7 @@ map<char, string> Sort(map<char, string> pieces)
     return pieces; // return the pieces map with their sorted positions
 }
 
-map<char, string> getLocations(string line) // function to find all the positions of each piece in the game
+map<char, string> getpieces(string line) // function to find all the positions of each piece in the game
 {
     map<char, string> pieces;
     int i = 0;
@@ -425,7 +459,7 @@ char genFile(int file)
     return f;
 }
 
-vector<string> genLion(map<char, string> pieces) // double check due to failing test cases
+vector<string> genLion(map<char, string> pieces, vector<vector<char>> Board) // double check due to failing test cases
 {
     vector<string> moves;
     string player = pieces['x']; // which player turn
@@ -442,7 +476,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank][file - 1] == '-' || islower(Board[rank][file - 1])) // valid move
             {
-                // Board[rank][file - 1] = 'L';
                 char r = genRank(rank);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -455,7 +488,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank][file + 1] == '-' || islower(Board[rank][file + 1])) // space is free
             {
-                // Board[rank][file + 1] = 'L';
                 char r = genRank(rank);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -468,7 +500,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file] == '-' || islower(Board[rank - 1][file])) //free space
             {
-                //Board[rank - 1][file] = 'L';
                 char r = genRank(rank - 1);
                 char f = genFile(file);
                 string pos = states;
@@ -481,7 +512,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file] == '-' || islower(Board[rank + 1][file]))
             {
-                //Board[rank + 1][file] = 'L';
                 char r = genRank(rank + 1);
                 char f = genFile(file);
                 string pos = states;
@@ -494,7 +524,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file - 1] == '-' || islower(Board[rank - 1][file - 1])) // move diag left
             {
-                //Board[rank - 1][file - 1] = 'L';
                 char r = genRank(rank - 1);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -507,7 +536,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file + 1] == '-' || islower(Board[rank - 1][file + 1]))
             {
-                //Board[rank - 1][file + 1] = 'L';
                 char r = genRank(rank - 1);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -520,7 +548,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file - 1] == '-' || islower(Board[rank + 1][file - 1]))
             {
-                // Board[rank + 1][file - 1] = 'L';
                 char r = genRank(rank + 1);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -533,7 +560,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file + 1] == '-' || islower(Board[rank + 1][file + 1]))
             {
-                //Board[rank + 1][file + 1] = 'L';
                 char r = genRank(rank + 1);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -544,9 +570,8 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         }
         if (rank == 4 && file >= 2 && file <= 4) // we are at the river border -> check if we can catch opposing lion
         {
-            if (Board[rank - 2][file] == 'l') // opposition lion present
+            if (Board[rank - 2][file] == 'l' && Board[rank - 1][file] == '-') // opposition lion present
             {
-                Board[rank - 2][file] = '*';
                 char r = genRank(rank - 2);
                 char f = genFile(file);
                 string pos = states;
@@ -558,7 +583,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
             {
                 if (Board[rank - 2][file - 2] == 'l' && Board[rank - 1][file - 1] == '-')
                 {
-                    Board[rank - 2][file - 2] = '*';
                     char r = genRank(rank - 2);
                     char f = genFile(file - 2);
                     string pos = states;
@@ -571,7 +595,7 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
             {
                 if (Board[rank - 2][file + 2] == 'l' && Board[rank - 1][file + 1] == '-')
                 {
-                    Board[rank - 2][file + 2] = '*';
+
                     char r = genRank(rank - 2);
                     char f = genFile(file + 2);
                     string pos = states;
@@ -584,9 +608,9 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
 
         for (int i = rank - 1; i >= 0; i--)
         {
-
             if (Board[i][file] != '-')
             {
+
                 if (Board[i][file] == 'l')
                 {
                     char f = genFile(file);
@@ -594,7 +618,10 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
                     string pos = states;
                     pos += f;
                     pos += r;
-                    moves.push_back(pos);
+                    if (!std::count(moves.begin(), moves.end(), pos))
+                    {
+                        moves.push_back(pos);
+                    }
                 }
                 else
                 {
@@ -602,8 +629,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
                 }
             }
         }
-
-        //printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
@@ -619,7 +644,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank][file - 1] == '-' || isupper(Board[rank][file - 1])) // valid move
             {
-                //Board[rank][file - 1] = 'l';
                 char r = genRank(rank);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -632,7 +656,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank][file + 1] == '-' || isupper(Board[rank][file + 1])) // space is free
             {
-                //Board[rank][file + 1] = 'l';
                 char r = genRank(rank);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -645,7 +668,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file] == '-' || isupper(Board[rank - 1][file])) //free space
             {
-                //Board[rank - 1][file] = 'l';
                 char r = genRank(rank - 1);
                 char f = genFile(file);
                 string pos = states;
@@ -658,7 +680,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file] == '-' || isupper(Board[rank + 1][file]))
             {
-                //Board[rank + 1][file] = 'l';
                 char r = genRank(rank + 1);
                 char f = genFile(file);
                 string pos = states;
@@ -671,7 +692,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file - 1] == '-' || isupper(Board[rank - 1][file - 1])) // move diag left
             {
-                //Board[rank - 1][file - 1] = 'l';
                 char r = genRank(rank - 1);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -684,7 +704,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 1][file + 1] == '-' || isupper(Board[rank - 1][file + 1]))
             {
-                //Board[rank - 1][file + 1] = 'l';
                 char r = genRank(rank - 1);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -697,7 +716,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file - 1] == '-' || isupper(Board[rank + 1][file - 1]))
             {
-                //Board[rank + 1][file - 1] = 'l';
                 char r = genRank(rank + 1);
                 char f = genFile(file - 1);
                 string pos = states;
@@ -710,7 +728,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank + 1][file + 1] == '-' || isupper(Board[rank + 1][file + 1]))
             {
-                //Board[rank + 1][file + 1] = 'l';
                 char r = genRank(rank + 1);
                 char f = genFile(file + 1);
                 string pos = states;
@@ -723,7 +740,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
         {
             if (Board[rank - 2][file] == 'L') // opposition lion present
             {
-                //Board[rank - 2][file] = '*';
                 char r = genRank(rank - 2);
                 char f = genFile(file);
                 string pos = states;
@@ -735,7 +751,6 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
             {
                 if (Board[rank + 2][file - 2] == 'L' && Board[rank + 1][file - 1] == '-')
                 {
-                    // Board[rank + 2][file - 2] = '*';
                     char r = genRank(rank + 2);
                     char f = genFile(file - 2);
                     string pos = states;
@@ -748,8 +763,7 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
             {
                 if (Board[rank + 2][file + 2] == 'L' && Board[rank + 1][file + 1] == '-')
                 {
-                    //Board[rank + 2][file + 2] = '*';
-                    char r = genRank(rank - 2);
+                    char r = genRank(rank + 2);
                     char f = genFile(file + 2);
                     string pos = states;
                     pos += f;
@@ -772,7 +786,10 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
                     string pos = states;
                     pos += f;
                     pos += r;
-                    moves.push_back(pos);
+                    if (!std::count(moves.begin(), moves.end(), pos))
+                    {
+                        moves.push_back(pos);
+                    }
                 }
                 else
                 {
@@ -780,14 +797,12 @@ vector<string> genLion(map<char, string> pieces) // double check due to failing 
                 }
             }
         }
-
-        printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
 }
 
-vector<string> genZebra(map<char, string> pieces) // change return type
+vector<string> genZebra(map<char, string> pieces, vector<vector<char>> Board) // change return type
 {
     vector<string> moves;
     string player = pieces['x']; // get the correct player turn
@@ -806,7 +821,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 2][file - 1] == '-' || islower(Board[rank - 2][file - 1])) // space available
                     {
-                        //Board[rank - 2][file - 1] = 'Z';
                         char f = genFile(file - 1);
                         char r = genRank(rank - 2);
                         string pos = states;
@@ -819,7 +833,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 2][file + 1] == '-' || islower(Board[rank - 2][file + 1])) // free/ capture
                     {
-                        //Board[rank - 2][file + 1] = 'Z';
                         char f = genFile(file + 1);
                         char r = genRank(rank - 2);
                         string pos = states;
@@ -835,7 +848,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 2][file - 1] == '-' || islower(Board[rank + 2][file - 1]))
                     {
-                        //Board[rank + 2][file - 1] = 'Z';
                         char f = genFile(file - 1);
                         char r = genRank(rank + 2);
                         string pos = states;
@@ -848,7 +860,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 2][file + 1] == '-' || islower(Board[rank + 2][file + 1]))
                     {
-                        //Board[rank + 2][file + 1] = 'Z';
                         char f = genFile(file + 1);
                         char r = genRank(rank + 2);
                         string pos = states;
@@ -865,7 +876,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 1][file + 2] == '-' || islower(Board[rank - 1][file + 2]))
                     {
-                        //Board[rank - 1][file + 2] = 'Z';
                         char f = genFile(file + 2);
                         char r = genRank(rank - 1);
                         string pos = states;
@@ -878,7 +888,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 1][file + 2] == '-' || islower(Board[rank + 1][file + 2]))
                     {
-                        //Board[rank + 1][file + 2] = 'Z';
                         char f = genFile(file + 2);
                         char r = genRank(rank + 1);
                         string pos = states;
@@ -894,7 +903,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 1][file - 2] == '-' || islower(Board[rank - 1][file - 2]))
                     {
-                        //Board[rank - 1][file - 2] = 'Z';
                         char f = genFile(file - 2);
                         char r = genRank(rank - 1);
                         string pos = states;
@@ -907,7 +915,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 1][file - 2] == '-' || islower(Board[rank + 1][file - 2]))
                     {
-                        //Board[rank + 1][file - 2] = 'Z';
                         char f = genFile(file - 2);
                         char r = genRank(rank + 1);
                         string pos = states;
@@ -917,8 +924,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                     }
                 }
             }
-
-            //printBoard(Board);
             sort(moves.begin(), moves.end());
             return moves;
         }
@@ -942,7 +947,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 2][file - 1] == '-' || isupper(Board[rank - 2][file - 1])) // space available
                     {
-                        //Board[rank - 2][file - 1] = 'Z';
                         char f = genFile(file - 1);
                         char r = genRank(rank - 2);
                         string pos = states;
@@ -955,7 +959,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 2][file + 1] == '-' || isupper(Board[rank - 2][file + 1])) // free/ capture
                     {
-                        //Board[rank - 2][file + 1] = 'Z';
                         char f = genFile(file + 1);
                         char r = genRank(rank - 2);
                         string pos = states;
@@ -971,7 +974,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 2][file - 1] == '-' || isupper(Board[rank + 2][file - 1]))
                     {
-                        //Board[rank + 2][file - 1] = 'Z';
                         char f = genFile(file - 1);
                         char r = genRank(rank + 2);
                         string pos = states;
@@ -984,7 +986,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 2][file + 1] == '-' || isupper(Board[rank + 2][file + 1]))
                     {
-                        //Board[rank + 2][file + 1] = 'Z';
                         char f = genFile(file + 1);
                         char r = genRank(rank + 2);
                         string pos = states;
@@ -1001,7 +1002,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 1][file + 2] == '-' || isupper(Board[rank - 1][file + 2]))
                     {
-                        //Board[rank - 1][file + 2] = 'Z';
                         char f = genFile(file + 2);
                         char r = genRank(rank - 1);
                         string pos = states;
@@ -1014,7 +1014,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 1][file + 2] == '-' || isupper(Board[rank + 1][file + 2]))
                     {
-                        //Board[rank + 1][file + 2] = 'Z';
                         char f = genFile(file + 2);
                         char r = genRank(rank + 1);
                         string pos = states;
@@ -1030,7 +1029,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank - 1][file - 2] == '-' || isupper(Board[rank - 1][file - 2]))
                     {
-                        //Board[rank - 1][file - 2] = 'Z';
                         char f = genFile(file - 2);
                         char r = genRank(rank - 1);
                         string pos = states;
@@ -1043,7 +1041,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                 {
                     if (Board[rank + 1][file - 2] == '-' || isupper(Board[rank + 1][file - 2]))
                     {
-                        //Board[rank + 1][file - 2] = 'Z';
                         char f = genFile(file - 2);
                         char r = genRank(rank + 1);
                         string pos = states;
@@ -1053,8 +1050,6 @@ vector<string> genZebra(map<char, string> pieces) // change return type
                     }
                 }
             }
-
-            //printBoard(Board);
             sort(moves.begin(), moves.end());
             return moves;
         }
@@ -1065,7 +1060,7 @@ vector<string> genZebra(map<char, string> pieces) // change return type
     }
 }
 
-vector<string> genElephant(map<char, string> pieces)
+vector<string> genElephant(map<char, string> pieces, vector<vector<char>> Board)
 {
     vector<string> moves;
     string player = pieces['x'];
@@ -1203,8 +1198,6 @@ vector<string> genElephant(map<char, string> pieces)
         {
             return moves;
         }
-
-        //printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
@@ -1341,14 +1334,12 @@ vector<string> genElephant(map<char, string> pieces)
         {
             return moves;
         }
-
-        //printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
 }
 
-vector<string> genPawn(map<char, string> pieces)
+vector<string> genPawn(map<char, string> pieces, vector<vector<char>> Board)
 {
     vector<string> moves;
     string player = pieces['x'];
@@ -1437,7 +1428,6 @@ vector<string> genPawn(map<char, string> pieces)
         {
             return moves;
         }
-        //printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
@@ -1452,7 +1442,7 @@ vector<string> genPawn(map<char, string> pieces)
                 int file = getFile(states[i]);
                 int rank = getRank(states[i + 1]);
 
-                if (rank > 0) // we can move straight down
+                if (rank > 0 && rank < 6) // we can move straight down
                 {
                     if (Board[rank + 1][file] == '-' || isupper(Board[rank + 1][file]))
                     {
@@ -1525,10 +1515,488 @@ vector<string> genPawn(map<char, string> pieces)
         {
             return moves;
         }
-        //printBoard(Board);
         sort(moves.begin(), moves.end());
         return moves;
     }
+}
+
+string executeMove(string action, map<char, string> positions, vector<vector<char>> &Board)
+{
+    int start_file = getFile(action[0]);
+    int start_rank = getRank(action[1]);
+
+    int end_file = getFile(action[2]);
+    int end_rank = getRank(action[3]);
+
+    int risk_x = 0, risk_y = 0;
+
+    string player = positions['x'];
+
+    for (int i = 0; i < 7; ++i) // check the river for exisiting pieces
+    {
+        if (player == "w") // if its white check for a white piece
+        {
+            if (isupper(Board[3][i]) && start_rank != 3 && Board[3][i] != '-')
+            {
+                risk_x = 3;
+                risk_y = i;
+            }
+        }
+        else
+        {
+
+            if (islower(Board[3][i]) && start_rank != 3 && Board[3][i] != '-') // check for black piece
+            {
+                risk_x = 3;
+                risk_y = i;
+            }
+        }
+    }
+
+    char piece = Board[start_rank][start_file];
+    Board[start_rank][start_file] = '-';
+    Board[end_rank][end_file] = piece;
+
+    if (start_rank == 3 && end_rank == 3) // if we started and end in the river
+    {
+        Board[end_rank][end_file] = '-'; // eliminate that piece
+    }
+
+    if (player == "w")
+    {
+        if (isupper(Board[risk_x][risk_y]) && risk_x == 3)
+        {
+            Board[risk_x][risk_y] = '-';
+        }
+    }
+    else
+    {
+
+        if (islower(Board[risk_x][risk_y]) && risk_x == 3)
+        {
+            Board[risk_x][risk_y] = '-';
+        }
+    }
+
+    string FEN = makeFEN(Board);
+    if (player == "w")
+    {
+        string moveNum = positions['y'];
+        FEN += " b " + moveNum;
+    }
+    else
+    {
+        int moveNum = stoi(positions['y']);
+        moveNum++;
+
+        FEN += " w " + to_string(moveNum);
+    }
+
+    map<char, string> newPos = getpieces(FEN);
+
+    bool foundBlack = newPos.find('l') != newPos.end();
+    bool foundWhite = newPos.find('L') != newPos.end();
+
+    return FEN;
+}
+
+int checkEmpty(vector<vector<char>> Board)
+{
+    int score = 0;
+
+    bool whiteFound = false;
+    bool blackFound = false;
+    bool otherPiece = false;
+
+    for (int i = 0; i < 7; ++i)
+    {
+        for (int j = 0; j < 7; ++j)
+        {
+            if (Board[i][j] == 'L') // we found the white lion
+            {
+                whiteFound = true;
+            }
+
+            if (Board[i][j] == 'l') // found the black lion
+            {
+                blackFound = true;
+            }
+
+            if (Board[i][j] != '-' && toupper(Board[i][j]) != 'L') // there is another piece present
+            {
+                otherPiece = true;
+            }
+        }
+    }
+
+    if (otherPiece == false) // if there are no other pieces
+    {
+        if (whiteFound == true && blackFound == true)
+        {
+            score = 0;
+        }
+        if (whiteFound == true && blackFound == false) // white has won
+        {
+            score = 10000;
+        }
+        if (whiteFound == false && blackFound == true) // black wins
+        {
+            score = -10000;
+        }
+        return score;
+    }
+    else // another piece is found
+    {
+        if (whiteFound == true && blackFound == false)
+        {
+            score = 10000;
+            return score;
+        }
+        else if (whiteFound == false && blackFound == true)
+        {
+            score = -10000;
+            return score;
+        }
+        else
+        {
+            score = -1;
+            return score;
+        }
+    }
+}
+
+int countPieces(string piece)
+{
+    int count = 0;
+    for (int i = 0; i < piece.length() - 1; ++i)
+    {
+        if (isalpha(piece[i]) && piece[i] != ' ')
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+vector<string> genAllMoves(map<char, string> pieces, vector<vector<char>> Board)
+{
+    vector<string> lion = genLion(pieces, Board);
+    vector<string> pawn = genPawn(pieces, Board);
+    vector<string> elephant = genElephant(pieces, Board);
+    vector<string> zebra = genZebra(pieces, Board);
+
+    vector<string> result;
+    result.clear();
+
+    for (int i = 0; i < zebra.size(); ++i)
+    {
+        if (zebra[i] != "")
+        {
+            result.push_back(zebra[i]);
+        }
+    }
+    for (int i = 0; i < elephant.size(); ++i)
+    {
+        if (elephant[i] != "")
+        {
+            result.push_back(elephant[i]);
+        }
+    }
+    for (int i = 0; i < lion.size(); ++i)
+    {
+        if (lion[i] != "")
+        {
+            result.push_back(lion[i]);
+        }
+    }
+    for (int i = 0; i < pawn.size(); ++i)
+    {
+        if (pawn[i] != "")
+        {
+            result.push_back(pawn[i]);
+        }
+    }
+
+    return result;
+}
+
+int getRawScore(map<char, string> pieces)
+{
+
+    vector<vector<char>> Board = setBoard(pieces);
+
+    string player = pieces['x']; // which player is it
+
+    int rawScore = checkEmpty(Board);
+    int whiteScore = 0;
+    int blackScore = 0;
+
+    if (rawScore == -1) // if we have to check the other pieces
+    {
+        for (auto key : pieces)
+        {
+            if (key.first == 'P' && key.second.length() != 0) // if there are white pawns on the board
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * PAWN;
+            }
+            if (key.first == 'E' && key.second.length() != 0) // if there are white elephants
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * ELEPHANT;
+            }
+            if (key.first == 'Z' && key.second.length() != 0) // if there are white zebras
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * ZEBRA;
+            }
+            if (key.first == 'p' && key.second.length() != 0) // if there are white pawns on the board
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * PAWN;
+            }
+            if (key.first == 'e' && key.second.length() != 0) // if there are white elephants
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * ELEPHANT;
+            }
+            if (key.first == 'z' && key.second.length() != 0) // if there are white zebras
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * ZEBRA;
+            }
+        }
+
+        int materialScore = whiteScore - blackScore; // chceked this is correct
+                                                     //        cout << "The material score: " << materialScore << endl;
+
+        int mobilityScore = 0;
+        int attackScore = 0;
+
+        if (pieces['x'] == "w") // if the player is white
+        {
+            vector<string> whiteMoves = genAllMoves(pieces, Board);
+            map<char, string> blackMap = pieces;
+            blackMap['x'] = "b";
+            vector<string> blackMoves = genAllMoves(blackMap, Board);
+
+            int whiteMobility = whiteMoves.size();
+            int blackMobility = blackMoves.size();
+
+            mobilityScore = whiteMobility - blackMobility;
+
+            int whiteAttack = 0, blackAttack = 0;
+            for (auto move : whiteMoves)
+            {
+                int end_file = getFile(move[2]);
+                int end_rank = getRank(move[3]);
+                if (islower(Board[end_rank][end_file]) && Board[end_rank][end_file] != '-') // check if we attack an enemy piece
+                {
+                    whiteAttack++;
+                    if (Board[end_rank][end_file] == 'l')
+                    {
+                        whiteAttack = whiteAttack + 10;
+                    }
+                }
+            }
+
+            for (auto move : blackMoves)
+            {
+                int end_file = getFile(move[2]);
+                int end_rank = getRank(move[3]);
+                if (isupper(Board[end_rank][end_file]) && Board[end_rank][end_file] != '-') // check if we attack an enemy piece
+                {
+                    blackAttack++;
+                    if (Board[end_rank][end_file] == 'L')
+                    {
+                        blackAttack = blackAttack + 10;
+                    }
+                }
+            }
+
+            attackScore = whiteAttack - blackAttack;
+        }
+        else
+        { // player is black
+            vector<string> blackMoves = genAllMoves(pieces, Board);
+            map<char, string> whiteMap = pieces;
+            whiteMap['x'] = "w";
+            vector<string> whiteMoves = genAllMoves(whiteMap, Board);
+
+            int whiteMobility = whiteMoves.size();
+            int blackMobility = blackMoves.size();
+
+            mobilityScore = whiteMobility - blackMobility;
+
+            int whiteAttack = 0, blackAttack = 0;
+            for (auto move : whiteMoves)
+            {
+                int end_file = getFile(move[2]);
+                int end_rank = getRank(move[3]);
+                if (islower(Board[end_rank][end_file]) && Board[end_rank][end_file] != '-') // check if we attack an enemy piece
+                {
+                    whiteAttack++;
+                    if (Board[end_rank][end_file] == 'l')
+                    {
+                        whiteAttack = whiteAttack + 10;
+                    }
+                }
+            }
+
+            for (auto move : blackMoves)
+            {
+                int end_file = getFile(move[2]);
+                int end_rank = getRank(move[3]);
+                if (isupper(Board[end_rank][end_file]) && Board[end_rank][end_file] != '-') // check if we attack an enemy piece
+                {
+                    blackAttack++;
+                    if (Board[end_rank][end_file] == 'L')
+                    {
+                        blackAttack = blackAttack + 10;
+                    }
+                }
+            }
+            attackScore = whiteAttack - blackAttack;
+        }
+
+        rawScore = materialScore + mobilityScore + attackScore;
+
+        if (pieces['x'] == "w") // if its whites turn dont mult. by -1
+        {
+            return rawScore;
+        }
+        else
+        {
+            return (-1 * rawScore);
+        }
+    }
+    else
+    {
+        if (pieces['x'] == "w") // if its whites turn dont mult. by -1
+        {
+            return rawScore;
+        }
+        else
+        {
+            return (-1 * rawScore);
+        }
+    }
+}
+
+bool isGameOver(map<char, string> pieces)
+{
+    bool Wlion = pieces.find('L') != pieces.end();
+    bool Blion = pieces.find('l') != pieces.end();
+
+    if (Wlion == false || Blion == false)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+int minimax(map<char, string> pieces, int depth, string &bestMove, bool first)
+{
+    vector<vector<char>> Board = setBoard(pieces);
+    if (isGameOver(pieces) == true || depth <= 0)
+    {
+        int score = getRawScore(pieces);
+        return score;
+    }
+    int value = -10000000;
+
+    vector<string> allMoves = genAllMoves(pieces, Board);
+
+    for (int i = 0; i < allMoves.size(); ++i)
+    {
+        string move = allMoves[i];
+        string nextState = executeMove(move, pieces, Board);
+        map<char, string> nextpieces = getpieces(nextState);
+        int eval = -1 * (minimax(nextpieces, depth - 1, bestMove, false));
+        value = max(value, eval);
+        if (first)
+        {
+            bestMove = move;
+        }
+    }
+    return value;
+}
+
+int alphaBeta(map<char, string> pieces, int depth, int alpha, int beta, string &bestMove, bool first)
+{
+    vector<vector<char>> Board = setBoard(pieces);
+    if (isGameOver(pieces) == true || depth <= 0)
+    {
+        int score = getRawScore(pieces);
+        return score;
+    }
+    vector<string> allMoves = genAllMoves(pieces, Board);
+
+    for (int i = 0; i < allMoves.size(); ++i)
+    {
+        string move = allMoves[i];
+        string nextState = executeMove(move, pieces, Board);
+        map<char, string> nextpieces = getpieces(nextState);
+        int eval = -(alphaBeta(nextpieces, depth - 1, -beta, -alpha, bestMove, false));
+        if (eval >= beta)
+        {
+            return beta;
+        }
+        if (eval > alpha)
+        {
+            alpha = eval;
+            if (first)
+            {
+                bestMove = move;
+            }
+        }
+    }
+    return alpha;
+}
+
+string playGame(map<char, string> pieces, vector<vector<char>> Board)
+{
+    string player = "w";
+    int moveCount = 0;
+    int value;
+
+    while (moveCount < 100)
+    {
+        string move;
+
+        if (player == "w")
+        {
+            value = minimax(pieces, 2, move, true);
+        }
+        else
+        {
+            value = alphaBeta(pieces, 3, -1000000, 1000000, move, true);
+            moveCount++;
+        }
+
+        string nextState = executeMove(move, pieces, Board); // double check
+        pieces.clear();
+        pieces = getpieces(nextState);
+
+        if (isGameOver(pieces))
+        {
+            return player;
+        }
+
+        if (player == "w")
+        {
+            player = "b";
+        }
+        else
+        {
+            player = "w";
+        }
+    }
+
+    return "DRAW";
 }
 
 int main()
@@ -1541,41 +2009,21 @@ int main()
 
     for (int i = 0; i < n; i++)
     {
-        string line;
+        string line, piece_move;
         getline(cin, line);
         states.push_back(line); // adding the FEN to collection of states
     }
 
-    int count = 0;
-    int map_size = states.size();
-
     map<char, string> positions;
     vector<string> move_states;
+
     for (string key : states) // for each state of the game
     {
-        initBoard();                   // initialize board
-        positions = getLocations(key); // Get the positions of all the pieces
-        //PrintPositions(positions); DEBUG
-        //count++;
+        positions = getpieces(key); // Get the positions of all the pieces
 
-        setBoard(positions);
-        // printBoard(Board);
+        vector<vector<char>> Board = setBoard(positions);
 
-        move_states = genPawn(positions);
-
-        int state_size = move_states.size();
-
-        for (string key : move_states)
-        {
-            if (count == state_size)
-            {
-                cout << key;
-            }
-            else
-            {
-                cout << key << " ";
-            }
-        }
-        cout << endl;
+        string result = playGame(positions, Board);
+        cout << result << endl;
     }
 }
