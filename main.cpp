@@ -1720,6 +1720,73 @@ vector<string> genAllMoves(map<char, string> pieces, vector<vector<char>> Board)
     return result;
 }
 
+int miniRawScore(map<char, string> pieces)
+{
+    vector<vector<char>> Board = setBoard(pieces);
+
+    int rawScore = checkEmpty(Board);
+    int whiteScore = 0;
+    int blackScore = 0;
+
+    if (rawScore == -1) // if we have to check the other pieces
+    {
+        for (auto key : pieces)
+        {
+            if (key.first == 'P' && key.second.length() != 0) // if there are white pawns on the board
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * PAWN;
+            }
+            if (key.first == 'E' && key.second.length() != 0) // if there are white elephants
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * ELEPHANT;
+            }
+            if (key.first == 'Z' && key.second.length() != 0) // if there are white zebras
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                whiteScore += frequency * ZEBRA;
+            }
+            if (key.first == 'p' && key.second.length() != 0) // if there are white pawns on the board
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * PAWN;
+            }
+            if (key.first == 'e' && key.second.length() != 0) // if there are white elephants
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * ELEPHANT;
+            }
+            if (key.first == 'z' && key.second.length() != 0) // if there are white zebras
+            {
+                int frequency = countPieces(key.second); // check of to get the freq
+                blackScore += frequency * ZEBRA;
+            }
+        }
+
+        rawScore = whiteScore - blackScore;
+        if (pieces['x'] == "w") // if its whites turn dont mult. by -1
+        {
+            return rawScore;
+        }
+        else
+        {
+            return (-1 * rawScore);
+        }
+    }
+    else
+    {
+        if (pieces['x'] == "w") // if its whites turn dont mult. by -1
+        {
+            return rawScore;
+        }
+        else
+        {
+            return (-1 * rawScore);
+        }
+    }
+}
+
 int getRawScore(map<char, string> pieces)
 {
 
@@ -1903,7 +1970,7 @@ int minimax(map<char, string> pieces, int depth, string &bestMove, bool first)
     vector<vector<char>> Board = setBoard(pieces);
     if (isGameOver(pieces) == true || depth <= 0)
     {
-        int score = getRawScore(pieces);
+        int score = miniRawScore(pieces);
         return score;
     }
     int value = -10000000;
@@ -2016,6 +2083,7 @@ int main()
 
     map<char, string> positions;
     vector<string> move_states;
+    string move;
 
     for (string key : states) // for each state of the game
     {
